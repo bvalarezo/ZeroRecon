@@ -2,71 +2,36 @@
 import argparse
 import textwrap
 import os
+import logger
+import helper
 
 def _quit():
     TERM_FLAGS = termios.tcgetattr(sys.stdin.fileno())
     termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, TERM_FLAGS)
 
 def _init(project_name, output_dir):
-    # global port_scan_profiles_config
-    # global service_scans_config
-    # global global_patterns
-
-    atexit.register(_quit)
-    appname = "ZeroRecon"
-    project_dir = os.path.join(os.path.dirname(output_dir), project_name)
+    # atexit.register(_quit)
+    project_dir = os.path.join(output_dir, project_name)
     #create proj dir
-    if os.path.exists(project_dir):
-        #project exits? warning
-        #prompt if user would like to overwrite this directroy?
+    if os.path.isdir(project_dir):
+        #prompt if they wanna overwrite
+        v.warn("Directory " + project_dir + " exists!")
+        if not helper.query_yes_no("Would you like to write to this directory?"):
+            raise FileExistsError
     else:
         #create project dir
+        pass
+        v.log("Creating directory " + project_dir)
         os.makedirs(project_dir, exist_ok=True)
 
     report_dir = os.path.join(project_dir, "report")
     scans_dir = os.path.join(project_dir, "scans")
     logs_dir = os.path.join(project_dir, "logs")
-
+    # create these sub directories
 
     # Confirm this directory exists;
-    if not os.path.exists(config_dir):
-        raise EOFError
+
     return 0
-
-
-    with open(port_scan_profiles_config_file, "r") as p:
-        try:
-            port_scan_profiles_config = toml.load(p)
-
-            if len(port_scan_profiles_config) == 0:
-                fail(
-                    "There do not appear to be any port scan profiles configured in the {port_scan_profiles_config_file} config file."
-                )
-
-        except toml.decoder.TomlDecodeError as e:
-            fail(
-                "Error: Couldn't parse {port_scan_profiles_config_file} config file. Check syntax and duplicate tags."
-            )
-
-    with open(service_scans_config_file, "r") as c:
-        try:
-            service_scans_config = toml.load(c)
-        except toml.decoder.TomlDecodeError as e:
-            fail(
-                "Error: Couldn't parse service-scans.toml config file. Check syntax and duplicate tags."
-            )
-
-    with open(global_patterns_config_file, "r") as p:
-        try:
-            global_patterns = toml.load(p)
-            if "pattern" in global_patterns:
-                global_patterns = global_patterns["pattern"]
-            else:
-                global_patterns = []
-        except toml.decoder.TomlDecodeError as e:
-            fail(
-                "Error: Couldn't parse global-patterns.toml config file. Check syntax and duplicate tags."
-            )
 
     if "username_wordlist" in service_scans_config:
         if isinstance(service_scans_config["username_wordlist"], str):
@@ -80,7 +45,7 @@ def _init(project_name, output_dir):
 def main():
     """Default Values"""
     output_dir = os.getcwd()
-
+    global v 
     parser = argparse.ArgumentParser(description='AutoRecon but ZeroTouch',  formatter_class=argparse.RawTextHelpFormatter)
     """Positional Arguments"""
     parser.add_argument('project_name', action='store', type=str, help='The name for the project')
@@ -95,11 +60,13 @@ def main():
     parser.add_argument('-o','--output', action='store', default=output_dir, help='the output directory for the results.\nDefault: Current Working Directory (%(default)s)')
        
     parser.add_argument('--config', action='store', help='Config file')
-    parser.add_argument('-v', '--verbose', action='count', default=0, help='Enable verbose output. Repeat for more verbosity.')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Enable verbose output. Repeat for more verbosity.')
+    parser.add_argument('-d', '--debug', action='store_true', default=False, help='Enable debug output.')
     parser.add_argument('--no-daemon', action='store_true', default=False, help='Do not daemonize the scanning threads.' )
     #take in arguements
+    
     args = parser.parse_args()
-
+    v = logger.Logger(args.debug, args.verbose)
     if args.concurrent_targets <= 0:
         error('Argument -ch/--concurrent-targets: must be at least 1.')
         errors = True
@@ -111,13 +78,16 @@ def main():
         errors = True
 
     # check for target_file
-    if 0 < len(args.target_file):
+    if args.target_file:
         raise NotImplementedError
+    if args.output:
+        output_dir = args.output
 
     #launch init function, init will prepare directory 
-    print(args)
-    #target objects (with fun stuff)
     #create output directories
+    print(args)
+    _init(args.project_name, output_dir)
+    #target objects (with fun stuff)
 
     #explode targets into objects
 

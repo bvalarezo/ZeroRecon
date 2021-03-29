@@ -6,7 +6,7 @@ CBLINK    = '\33[5m'
 CBLINK2   = '\33[6m'
 CSELECTED = '\33[7m'
 
-class Color(Enum):
+class Color():
     CBLACK  = '\33[30m'
     CRED    = '\33[31m'
     CGREEN  = '\33[32m'
@@ -47,7 +47,6 @@ class Color(Enum):
 
 
 class Logger:
-
     def __init__(self, is_debug=False, is_verbose=False):
         self.is_debug = is_debug
         self.is_verbose = is_verbose
@@ -56,7 +55,7 @@ class Logger:
         self.myprint(msg, Color.CGREEN)
 
     def warn(self, msg):
-        self.myprint(msg, Color.CYELLOW)
+        self.myprint('Warning: '+msg, Color.CYELLOW)
 
     def fail(self, msg):
         self.myprint(msg, Color.CRED)
